@@ -20,7 +20,7 @@ setup(
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/devgaganin",
+    url="https://github.com/devgaganin/spylib",
     author="devgagan",
     author_email="business@devgagan.in"
 )
