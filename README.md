@@ -2,10 +2,10 @@
   <h1>devgagantools</h1>
   
   <p>
-    <img src="https://img.shields.io/pypi/v/devgaganin?color=blue&style=flat-square" alt="PyPI Version">
-    <img src="https://img.shields.io/pypi/pyversions/devgaganin?style=flat-square" alt="Python Versions">
-    <img src="https://img.shields.io/github/license/username/devgaganin?style=flat-square" alt="License">
-    <img src="https://img.shields.io/pypi/dm/devgaganin?style=flat-square&color=brightgreen" alt="Downloads">
+    <img src="https://img.shields.io/pypi/v/devgagantools?color=blue&style=flat-square" alt="PyPI Version">
+    <img src="https://img.shields.io/pypi/pyversions/devgagantools?style=flat-square" alt="Python Versions">
+    <img src="https://img.shields.io/github/license/username/devgaganin/devgagantools?style=flat-square" alt="License">
+    <img src="https://img.shields.io/pypi/dm/devgagantools?style=flat-square&color=brightgreen" alt="Downloads">
   </p>
 
 </div>
