@@ -1,9 +1,14 @@
-# SpyLib
+<div align="center">
+  <h1>📂 spylib</h1>
+  
+  <p>
+    <img src="https://img.shields.io/pypi/v/spylib?color=blue&style=flat-square" alt="PyPI Version">
+    <img src="https://img.shields.io/pypi/pyversions/spylib?style=flat-square" alt="Python Versions">
+    <img src="https://img.shields.io/github/license/username/spylib?style=flat-square" alt="License">
+    <img src="https://img.shields.io/pypi/dm/spylib?style=flat-square&color=brightgreen" alt="Downloads">
+  </p>
 
-![PyPI Version](https://img.shields.io/pypi/v/spylib?color=blue&style=flat-square) 
-![Python Versions](https://img.shields.io/pypi/pyversions/spylib?style=flat-square) 
-![License](https://img.shields.io/github/license/username/spylib?style=flat-square)  
-![Downloads](https://img.shields.io/pypi/dm/spylib?style=flat-square&color=brightgreen)  
+</div>
 
 `SpyLib` is a Python library designed for fast and efficient file upload and download operations. It includes features like progress tracking, customizable file names, and human-readable file size formatting. The library is asynchronous and integrates seamlessly with Telegram bots or other projects requiring file management.
 
