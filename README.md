@@ -1,16 +1,16 @@
 <div align="center">
-  <h1>SpyLib</h1>
+  <h1>devgagantools</h1>
   
   <p>
-    <img src="https://img.shields.io/pypi/v/spylib?color=blue&style=flat-square" alt="PyPI Version">
-    <img src="https://img.shields.io/pypi/pyversions/spylib?style=flat-square" alt="Python Versions">
-    <img src="https://img.shields.io/github/license/username/spylib?style=flat-square" alt="License">
-    <img src="https://img.shields.io/pypi/dm/spylib?style=flat-square&color=brightgreen" alt="Downloads">
+    <img src="https://img.shields.io/pypi/v/devgaganin?color=blue&style=flat-square" alt="PyPI Version">
+    <img src="https://img.shields.io/pypi/pyversions/devgaganin?style=flat-square" alt="Python Versions">
+    <img src="https://img.shields.io/github/license/username/devgaganin?style=flat-square" alt="License">
+    <img src="https://img.shields.io/pypi/dm/devgaganin?style=flat-square&color=brightgreen" alt="Downloads">
   </p>
 
 </div>
 
-`SpyLib` is a Python library designed for fast and efficient file upload and download operations. It includes features like progress tracking, customizable file names, and human-readable file size formatting. The library is asynchronous and integrates seamlessly with Telegram bots or other projects requiring file management.
+`devgagantools` is a Python library designed for fast and efficient file upload and download operations. It includes features like progress tracking, customizable file names, and human-readable file size formatting. The library is asynchronous and integrates seamlessly with Telegram bots or other projects requiring file management.
 
 ---
 
@@ -29,7 +29,7 @@
 To install the library once it's published to PyPI, use:
 
 ```bash
-pip install SpyLib
+pip install devgagantools
 ```
 
 ---
@@ -38,7 +38,7 @@ pip install SpyLib
 
 ### 1. Fast Download
 
-You can use the `SpyLib` download functionality by providing the required parameters:
+You can use the `devgagantools` download functionality by providing the required parameters:
 
 - **`client`**: The Telegram client instance (e.g., Pyrogram Client).  
 - **`msg`**: The Telegram message containing the file to download.  
@@ -50,7 +50,7 @@ You can use the `SpyLib` download functionality by providing the required parame
 #### Example
 
 ```python
-download_location = await SpyLib.fast_download(
+download_location = await devgagantools.fast_download(
     client=client,
     msg=message,
     reply=reply_message,  # Optional
@@ -75,7 +75,7 @@ You can upload files using the following arguments:
 #### Example
 
 ```python
-uploaded_file = await SpyLib.fast_upload(
+uploaded_file = await devgagantools.fast_upload(
     client=client,
     file_location="my_files/custom_filename.mp4",
     reply=reply_message,  # Optional
@@ -110,7 +110,7 @@ Pass this function as the `progress_bar_function` argument in the download or up
 The library also provides a utility to convert file sizes into human-readable formats:
 
 ```python
-from SpyLib import human_readable_size
+from devgagantools import human_readable_size
 
 size = human_readable_size(1048576)  # Output: '1.00 MB'
 ```
