@@ -136,6 +136,7 @@ Contributions are welcome! Feel free to fork the repository, make your changes, 
 
 ## Special Thanks
 - Mautrix Telegram Bridge
-- 
+
+
 ## Contacts
-- Contact us on telegram for any query [Team Spy](https://team_spy_pro)]
+- Contact us on telegram for any query [Team Spy](https://team_spy_pro)
