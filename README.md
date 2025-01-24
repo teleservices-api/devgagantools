@@ -134,5 +134,8 @@ This project is licensed under the MIT License.
 
 Contributions are welcome! Feel free to fork the repository, make your changes, and submit a pull request.
 
+## Special Thanks
+- Mautrix Telegram Bridge
+- 
 ## Contacts
-- Contact us on telegram for any query 
+- Contact us on telegram for any query [Team Spy](https://team_spy_pro)]
