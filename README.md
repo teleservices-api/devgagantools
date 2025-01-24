@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>📂 spylib</h1>
+  <h1>SpyLib</h1>
   
   <p>
     <img src="https://img.shields.io/pypi/v/spylib?color=blue&style=flat-square" alt="PyPI Version">
