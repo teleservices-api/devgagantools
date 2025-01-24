@@ -4,7 +4,7 @@
   <p>
     <img src="https://img.shields.io/pypi/v/devgagantools?color=blue&style=flat-square" alt="PyPI Version">
     <img src="https://img.shields.io/pypi/pyversions/devgagantools?style=flat-square" alt="Python Versions">
-    <img src="https://img.shields.io/github/license/username/devgaganin/devgagantools?style=flat-square" alt="License">
+    <img src="https://img.shields.io/github/license/devgaganin/devgagantools?style=flat-square" alt="License">
     <img src="https://img.shields.io/pypi/dm/devgagantools?style=flat-square&color=brightgreen" alt="Downloads">
   </p>
 
