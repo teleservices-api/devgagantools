@@ -10,7 +10,7 @@ setup(
     version="2.0.1",
     description="This repository aimed to be fast uploading and fast downloading via Telethon (user and bots both supported)",
     packages=find_packages(),
-    install_requires=["telethon", "telethon-tgcrypto"],
+    install_requires=["telethon", "telethon-tgcrypto", "aiofiles"],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
