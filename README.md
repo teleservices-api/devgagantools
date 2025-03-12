@@ -56,6 +56,7 @@ download_location = await devgagantools.fast_download(
     reply=reply_message,  # Optional
     download_folder="my_files/",  # Optional
     name="custom_filename.mp4",  # Optional
+    user_id=1234 # must pass int
 )
 print(f"File downloaded to: {download_location}")
 ```
@@ -80,6 +81,7 @@ uploaded_file = await devgagantools.fast_upload(
     file_location="my_files/custom_filename.mp4",
     reply=reply_message,  # Optional
     name="uploaded_file.mp4",  # Optional
+    user_id=12344 # must pass
 )
 print(f"File uploaded successfully: {uploaded_file}")
 ```
