@@ -1,10 +1,12 @@
+"""
+> Copyright (C) 2025 devgagan - https://github.com/devgagan/devgagantools
+"""
 
 import sys
 import os
 import pathlib
 import time
-import datetime as dt
-import aiofiles
+import logging
 
 sys.path.insert(0, f"{pathlib.Path(__file__).parent.resolve()}")
 
@@ -39,214 +41,188 @@ def human_readable_size(size, decimal_places=2):
         size /= 1024.0
     return f"{size:.{decimal_places}f} {unit}"
 
-async def fast_download(client, msg, reply = None, download_folder = None, progress_bar_function = progress_bar_str, name = None):
+async def fast_download(client, msg, reply=None, download_folder=None, progress_bar_function=None, name=None, user_id=None):
+    """
+    Download a file from a message with progress tracking and user-specific isolation.
+    
+    Args:
+        client: Telegram client
+        msg: Message containing the file
+        reply: Reply message for progress updates
+        download_folder: Base folder for downloads
+        progress_bar_function: Function to format progress
+        name: Custom filename (optional)
+        user_id: User identifier for isolation (optional)
+        
+    Returns:
+        Path to the downloaded file
+    """
+    # Create a unique download ID
+    timestamp = int(time.time())
+    message_id = getattr(msg, 'id', 0)
+    
+    # Use provided user_id or extract from message if possible
+    if user_id is None:
+        try:
+            user_id = getattr(msg.from_user, 'id', None) or \
+                    getattr(msg, 'from_id', None) or \
+                    f"unknown_{message_id}_{timestamp}"
+        except AttributeError:
+            user_id = f"unknown_{message_id}_{timestamp}"
+    
+    # Set up progress tracking
     timer = Timer()
-
-    async def progress_bar(downloaded_bytes, total_bytes):
-        if timer.can_send():
+    
+    # Create progress callback
+    async def progress_callback(downloaded_bytes, total_bytes):
+        if reply and timer.can_send() and progress_bar_function:
             data = progress_bar_function(downloaded_bytes, total_bytes)
-            await reply.edit(f"{data}")
-
+            try:
+                await reply.edit(f"{data}")
+            except Exception as e:
+                logging.error(f"Error updating progress: {e}")
+    
+    # Get file info
     file = msg.document
-    filename = name if name else msg.file.name
-    dir = "downloads/"
-
-    try:
-        os.mkdir("downloads/")
-    except:
-        pass
-
+    
+    # Set filename priority: custom name > original name > generated name
+    if name:
+        filename = name
+    else:
+        try:
+            filename = getattr(msg.file, 'name', None) or \
+                       getattr(file, 'file_name', None)
+        except AttributeError:
+            filename = None
+            
     if not filename:
-        filename = "video.mp4"
-                    
-    if download_folder == None:
-        download_location = dir + filename
-    else:
-        download_location = download_folder + filename 
-
-    with open(download_location, "wb") as f:
-        if reply != None:
+        # Generate a default filename with extension based on mime type if available
+        try:
+            mime = getattr(file, 'mime_type', 'application/octet-stream')
+            ext = mime.split('/')[-1] if '/' in mime else 'bin'
+            if ext == 'octet-stream':
+                ext = 'bin'
+        except AttributeError:
+            ext = 'bin'
+            
+        filename = f"file_{user_id}_{timestamp}.{ext}"
+    
+    # Create user-specific directory for isolation
+    base_dir = download_folder or "downloads/"
+    user_dir = os.path.join(base_dir, f"user_{user_id}")
+    
+    try:
+        os.makedirs(user_dir, exist_ok=True)
+    except Exception as e:
+        logging.error(f"Error creating directory {user_dir}: {e}")
+        # Fallback to base directory if user_dir creation fails
+        user_dir = base_dir
+        os.makedirs(base_dir, exist_ok=True)
+    
+    # Full path for the downloaded file
+    download_location = os.path.join(user_dir, filename)
+    
+    # Log the download start
+    logging.info(f"Downloading file to {download_location} (User: {user_id})")
+    
+    try:
+        # Create the file and download
+        with open(download_location, "wb") as f:
             await download_file(
                 client=client, 
                 location=file, 
                 out=f,
-                progress_callback=progress_bar
-            )
-        else:
-            await download_file(
-                client=client, 
-                location=file, 
-                out=f,
-            )
-    return download_location
-
-async def fast_upload(client, file_location, reply=None, name=None, progress_bar_function = progress_bar_str):
-    timer = Timer()
-    if name == None:
-        name = file_location.split("/")[-1]
-    async def progress_bar(downloaded_bytes, total_bytes):
-        if timer.can_send():
-            data = progress_bar_function(downloaded_bytes, total_bytes)
-            await reply.edit(f"{data}")
-    if reply != None:
-        with open(file_location, "rb") as f:
-            the_file = await upload_file(
-                client=client,
-                file=f,
-                name=name,
-                progress_callback=progress_bar
-            )
-    else:
-        with open(file_location, "rb") as f:
-            the_file = await upload_file(
-                client=client,
-                file=f,
-                name=name,
+                progress_callback=progress_callback if reply else None
             )
         
-    return the_file
-
-
-
-async def get_seconds(time_string):
-    def extract_value_and_unit(ts):
-        value = ""
-        unit = ""
-
-        index = 0
-        while index < len(ts) and ts[index].isdigit():
-            value += ts[index]
-            index += 1
-
-        unit = ts[index:].lstrip()
-
-        if value:
-            value = int(value)
-
-        return value, unit
-
-    value, unit = extract_value_and_unit(time_string)
-
-    if unit == 's':
-        return value
-    elif unit == 'min':
-        return value * 60
-    elif unit == 'hour':
-        return value * 3600
-    elif unit == 'day':
-        return value * 86400
-    elif unit == 'month':
-        return value * 86400 * 30
-    elif unit == 'year':
-        return value * 86400 * 365
-    else:
-        return 0
-PROGRESS_BAR = """\n
-│ **__Completed:__** {1}/{2}
-│ **__Bytes:__** {0}%
-│ **__Speed:__** {3}/s
-│ **__ETA:__** {4}
-╰─────────────────────╯
-"""
-async def progress_bar(current, total, ud_type, message, start):
-
-    now = time.time()
-    diff = now - start
-    if round(diff % 10.00) == 0 or current == total:
-
-        percentage = current * 100 / total
-        speed = current / diff
-        elapsed_time = round(diff) * 1000
-        time_to_completion = round((total - current) / speed) * 1000
-        estimated_total_time = elapsed_time + time_to_completion
-
-        elapsed_time = TimeFormatter(milliseconds=elapsed_time)
-        estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
-
-        progress = "{0}{1}".format(
-            ''.join(["♦" for i in range(math.floor(percentage / 10))]),
-            ''.join(["◇" for i in range(10 - math.floor(percentage / 10))]))
-
-        tmp = progress + PROGRESS_BAR.format( 
-            round(percentage, 2),
-            humanbytes(current),
-            humanbytes(total),
-            humanbytes(speed),
-
-            estimated_total_time if estimated_total_time != '' else "0 s"
-        )
-        try:
-            await message.edit(
-                text="{}\n│ {}".format(ud_type, tmp),)             
-        except:
-            pass
-
-def humanbytes(size):
-    if not size:
-        return ""
-    power = 2**10
-    n = 0
-    Dic_powerN = {0: ' ', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
-    while size > power:
-        size /= power
-        n += 1
-    return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
-
-def TimeFormatter(milliseconds: int) -> str:
-    seconds, milliseconds = divmod(int(milliseconds), 1000)
-    minutes, seconds = divmod(seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-    tmp = ((str(days) + "d, ") if days else "") + \
-        ((str(hours) + "h, ") if hours else "") + \
-        ((str(minutes) + "m, ") if minutes else "") + \
-        ((str(seconds) + "s, ") if seconds else "") + \
-        ((str(milliseconds) + "ms, ") if milliseconds else "")
-    return tmp[:-2] 
+        logging.info(f"Download completed: {download_location}")
+        return download_location
     
-def convert(seconds):
-    seconds = seconds % (24 * 3600)
-    hour = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60      
-    return "%d:%02d:%02d" % (hour, minutes, seconds)
+    except Exception as e:
+        logging.error(f"Download failed: {e}")
+        # Clean up partial file if it exists
+        if os.path.exists(download_location):
+            try:
+                os.remove(download_location)
+            except:
+                pass
+        raise
 
-async def split_and_upload_file(app, sender, target_chat_id, file_path, caption, topic_id, is_pin):
-    if not os.path.exists(file_path):
-        await app.send_message(sender, "❌ File not found!")
-        return
-
-    file_size = os.path.getsize(file_path)
-    start = await app.send_message(sender, f"ℹ️ File size: {file_size / (1024 * 1024):.2f} MB")
-    PART_SIZE =  1*9 * 1024 * 1024 * 1024
-
-    part_number = 0
-    async with aiofiles.open(file_path, mode="rb") as f:
-        while True:
-            chunk = await f.read(PART_SIZE)
-            if not chunk:
-                break
-
-            # Create part filename
-            base_name, file_ext = os.path.splitext(file_path)
-            part_file = f"{base_name}.part{str(part_number).zfill(3)}{file_ext}"
-
-            # Write part to file
-            async with aiofiles.open(part_file, mode="wb") as part_f:
-                await part_f.write(chunk)
-
-            # Uploading part
-            edit = await app.send_message(sender, f"⬆️ Uploading part {part_number + 1}...")
-            part_caption = f"{caption} \n\n**Part : {part_number + 1}**"
-            await app.send_document(target_chat_id, document=part_file, caption=part_caption, reply_to_message_id=topic_id,
-                progress=progress_bar,
-                progress_args=("╭─────────────────────╮\n│      **__Pyro Uploader__**\n├─────────────────────", edit, time.time())
-            )
-            await edit.delete()
-            os.remove(part_file)  # Cleanup after upload
-
-            part_number += 1
-
-    await start.delete()
-    os.remove(file_path)
+async def fast_upload(client, file_location, reply=None, name=None, progress_bar_function=None, user_id=None):
+    """
+    Upload a file with progress tracking and user-specific naming.
+    
+    Args:
+        client: Telegram client
+        file_location: Path to the file to upload
+        reply: Reply message for progress updates
+        name: Custom filename (optional)
+        progress_bar_function: Function to format progress
+        user_id: User identifier for filename prefix (optional)
+        
+    Returns:
+        Uploaded file object
+    """
+    # Validate file exists
+    if not os.path.exists(file_location):
+        raise FileNotFoundError(f"File not found: {file_location}")
+    
+    # Create a unique identifier for this upload
+    timestamp = int(time.time())
+    
+    # Set up progress tracking
+    timer = Timer()
+    
+    # Determine filename with proper isolation
+    if name is None:
+        # Extract base filename
+        base_name = os.path.basename(file_location)
+        
+        # Add user prefix if provided
+        if user_id:
+            # Check if the filename already has a user prefix to avoid duplication
+            if not base_name.startswith(f"{user_id}_"):
+                name = f"{user_id}_{base_name}"
+            else:
+                name = base_name
+        else:
+            # Add timestamp to ensure uniqueness if no user_id
+            base, ext = os.path.splitext(base_name)
+            name = f"{base}_{timestamp}{ext}"
+    
+    # Log upload start
+    logging.info(f"Uploading file {file_location} as {name} (User: {user_id})")
+    
+    # Create progress callback
+    async def progress_callback(uploaded_bytes, total_bytes):
+        if timer.can_send() and progress_bar_function:
+            data = progress_bar_function(uploaded_bytes, total_bytes)
+            try:
+                await reply.edit(f"{data}")
+            except Exception as e:
+                logging.error(f"Error updating progress: {e}")
+    
+    try:
+        # Upload the file
+        if reply:
+            with open(file_location, "rb") as f:
+                the_file = await upload_file(
+                    client=client,
+                    file=f,
+                    name=name,
+                    progress_callback=progress_callback
+                )
+        else:
+            with open(file_location, "rb") as f:
+                the_file = await upload_file(
+                    client=client,
+                    file=f,
+                    name=name
+                )
+                
+        logging.info(f"Upload completed: {name}")
+        return the_file
+        
+    except Exception as e:
+        logging.error(f"Upload failed: {e}")
+        raise
