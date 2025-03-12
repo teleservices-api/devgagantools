@@ -1,6 +1,7 @@
 """
 > Based on parallel_file_transfer.py from mautrix-telegram, with permission to distribute under the MIT license
 > Copyright (C) 2019 Tulir Asokan - https://github.com/tulir/mautrix-telegram
+> Editted and updated by Gagan - https://github.com/devgagan
 """
 import asyncio
 import hashlib
@@ -45,7 +46,8 @@ from telethon.tl.types import (
     TypeInputFile,
 )
 
-filename = ""
+# Remove the global filename variable
+# filename = ""  # DELETE THIS LINE
 
 log: logging.Logger = logging.getLogger("FastTelethon")
 
@@ -328,10 +330,14 @@ def stream_file(file_to_stream: BinaryIO, chunk_size=1024):
 
 
 async def _internal_transfer_to_telegram(
-    client: TelegramClient, response: BinaryIO, progress_callback: callable
+    client: TelegramClient, response: BinaryIO, progress_callback: callable, filename: str = None
 ) -> Tuple[TypeInputFile, int]:
     file_id = helpers.generate_random_long()
     file_size = os.path.getsize(response.name)
+    
+    # If no filename is provided, try to get it from the response
+    if filename is None:
+        filename = os.path.basename(response.name)
 
     hash_md5 = hashlib.md5()
     uploader = ParallelTransferrer(client)
@@ -395,9 +401,8 @@ async def download_file(
 async def upload_file(
     client: TelegramClient,
     file: BinaryIO,
-    name,
+    name=None,
     progress_callback: callable = None,
 ) -> TypeInputFile:
-    global filename
-    filename = name
-    return (await _internal_transfer_to_telegram(client, file, progress_callback))[0]
+    # Pass the name parameter directly to _internal_transfer_to_telegram
+    return (await _internal_transfer_to_telegram(client, file, progress_callback, name))[0]
