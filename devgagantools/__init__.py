@@ -7,14 +7,16 @@ import os
 import pathlib
 import time
 import logging
+import mimetypes
+from telethon.tl.types import DocumentAttributeFilename
+from pyrogram.enums import ParseMode
 
 sys.path.insert(0, f"{pathlib.Path(__file__).parent.resolve()}")
 
 from spylib import upload_file, download_file
 
-
 class Timer:
-    def __init__(self, time_between=5):
+    def __init__(self, time_between=1):  # 1 second for frequent updates
         self.start_time = time.time()
         self.time_between = time_between
 
@@ -24,14 +26,19 @@ class Timer:
             return True
         return False
 
-def progress_bar_str(done, total):
+def progress_bar_str(done, total, user_id):
     percent = round(done/total*100, 2)
-    strin = "░░░░░░░░░░"
-    strin = list(strin)
-    for i in range(round(percent)//10):
-        strin[i] = "█"
-    strin = "".join(strin)
-    final = f"Percent: {percent}%\n{human_readable_size(done)}/{human_readable_size(total)}\n{strin}"
+    strin = "♦" * (int(percent // 10)) + "◇" * (10 - int(percent // 10))
+    final = (
+        f"╭──────────────────╮\n"
+        f"│     **__Progress__**       \n"
+        f"├──────────\n"
+        f"│ {strin}\n\n"
+        f"│ **__Progress:__** {percent:.2f}%\n"
+        f"│ **__Done:__** {done / (1024 * 1024):.2f} MB / {total / (1024 * 1024):.2f} MB\n"
+        f"╰──────────────────╯\n"
+        f"**__Powered by Team SPY__**"
+    )
     return final 
 
 def human_readable_size(size, decimal_places=2):
@@ -41,21 +48,23 @@ def human_readable_size(size, decimal_places=2):
         size /= 1024.0
     return f"{size:.{decimal_places}f} {unit}"
 
-async def fast_download(client, msg, reply=None, download_folder=None, progress_bar_function=None, name=None, user_id=None):
+async def fast_download(client, msg, reply=None, download_folder=None, progress_bar_function=None, name=None, user_id=None, fallback_client=None, chat_id=None):
     """
     Download a file from a message with progress tracking and user-specific isolation.
     
     Args:
-        client: Telegram client
+        client: Telegram client (Telethon)
         msg: Message containing the file
-        reply: Reply message for progress updates
+        reply: Reply message for progress updates (Pyrogram Message)
         download_folder: Base folder for downloads
         progress_bar_function: Function to format progress
         name: Custom filename (optional)
         user_id: User identifier for isolation (optional)
+        fallback_client: Telethon client for fallback messaging (optional)
+        chat_id: Chat ID for fallback messaging (optional)
         
     Returns:
-        Path to the downloaded file
+        Tuple of (path to the downloaded file, document attributes)
     """
     # Create a unique download ID
     timestamp = int(time.time())
@@ -76,36 +85,47 @@ async def fast_download(client, msg, reply=None, download_folder=None, progress_
     # Create progress callback
     async def progress_callback(downloaded_bytes, total_bytes):
         if reply and timer.can_send() and progress_bar_function:
-            data = progress_bar_function(downloaded_bytes, total_bytes)
+            data = progress_bar_function(downloaded_bytes, total_bytes, user_id)
             try:
-                await reply.edit(f"{data}")
+                logging.info(f"Updating progress for user {user_id}: {data}")
+                await reply.edit_text(data, parse_mode=ParseMode.MARKDOWN)
+            except pyrogram.errors.MessageNotModified:
+                pass  # Ignore if the message content hasn't changed
             except Exception as e:
-                logging.error(f"Error updating progress: {e}")
-    
+                logging.error(f"Pyrogram edit failed: {e}. Falling back to Telethon.")
+                if fallback_client and chat_id:
+                    try:
+                        await fallback_client.send_message(chat_id, data, parse_mode='md')
+                    except Exception as te:
+                        logging.error(f"Telethon fallback failed: {te}")
+
     # Get file info
     file = msg.document
     
-    # Set filename priority: custom name > original name > generated name
+    # Set filename priority: custom name > document attribute > generated name
     if name:
         filename = name
     else:
-        try:
-            filename = getattr(msg.file, 'name', None) or \
-                       getattr(file, 'file_name', None)
-        except AttributeError:
-            filename = None
-            
-    if not filename:
-        # Generate a default filename with extension based on mime type if available
-        try:
-            mime = getattr(file, 'mime_type', 'application/octet-stream')
-            ext = mime.split('/')[-1] if '/' in mime else 'bin'
-            if ext == 'octet-stream':
-                ext = 'bin'
-        except AttributeError:
-            ext = 'bin'
-            
-        filename = f"file_{user_id}_{timestamp}.{ext}"
+        # Check document attributes for filename
+        attributes = getattr(file, 'attributes', [])
+        filename = None
+        for attr in attributes:
+            if isinstance(attr, DocumentAttributeFilename):
+                filename = attr.file_name
+                break
+        
+        if not filename:
+            # Generate a default filename with extension based on mime type
+            try:
+                mime = getattr(file, 'mime_type', 'application/octet-stream')
+                ext = mimetypes.guess_extension(mime) or '.bin'
+
+                if ext == '.bin' and mime.startswith('video/'):
+                    ext = '.mp4'  # Default to .mp4 for videos
+            except AttributeError:
+                ext = '.bin'
+                
+            filename = f"file_{user_id}_{timestamp}{ext}"
     
     # Create user-specific directory for isolation
     base_dir = download_folder or "downloads/"
@@ -121,6 +141,9 @@ async def fast_download(client, msg, reply=None, download_folder=None, progress_
     
     # Full path for the downloaded file
     download_location = os.path.join(user_dir, filename)
+    
+    # Get document attributes
+    attributes = getattr(file, 'attributes', [])
     
     # Log the download start
     logging.info(f"Downloading file to {download_location} (User: {user_id})")
